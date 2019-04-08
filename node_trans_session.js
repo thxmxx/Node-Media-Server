@@ -20,20 +20,23 @@ class NodeTransSession extends EventEmitter {
   run() {
     let vc = this.conf.vc || 'copy';
     let ac = this.conf.ac || 'copy';
+    let hasAudio = this.conf.audio || false;
+    let segmentTime = this.conf.segment || 60;
+
     let inPath = this.conf.inPath;
     let ouPath = `${this.conf.mediaroot}/${this.conf.streamApp}/${this.conf.streamName}`;
     let mapStr = '';
     if (this.conf.mp4) {
       this.conf.mp4Flags = this.conf.mp4Flags ? this.conf.mp4Flags : '';
-      let mp4FileName = dateFormat('yyyy-mm-dd-HH-MM') + '.mp4';
-      let mapMp4 = `${this.conf.mp4Flags}${ouPath}/${mp4FileName}|`;
+      let mp4FileName = dateFormat('yyyy-mm-dd-HH-MM') + '-%04d.mp4';
+      let mapMp4 = `${this.conf.mp4Flags}${ouPath}/${mp4FileName}`;
       mapStr += mapMp4;
       Logger.log('[Transmuxing MP4] ' + this.conf.streamPath + ' to ' + ouPath + '/' + mp4FileName);
     }
     if (this.conf.hls) {
       this.conf.hlsFlags = this.conf.hlsFlags ? this.conf.hlsFlags : '';
       let hlsFileName = 'index.m3u8';
-      let mapHls = `${this.conf.hlsFlags}${ouPath}/${hlsFileName}|`;
+      let mapHls = `${this.conf.hlsFlags}${ouPath}/${hlsFileName}`;
       mapStr += mapHls;
       Logger.log('[Transmuxing HLS] ' + this.conf.streamPath + ' to ' + ouPath + '/' + hlsFileName);
     }
@@ -48,13 +51,12 @@ class NodeTransSession extends EventEmitter {
     let argv = ['-y', '-fflags', 'nobuffer', '-i', inPath];
     Array.prototype.push.apply(argv, ['-c:v', vc]);
     Array.prototype.push.apply(argv, this.conf.vcParam);
-    if (this.conf.audio) {
+    if (hasAudio) {
       Array.prototype.push.apply(argv, ['-c:a', ac]);
       Array.prototype.push.apply(argv, this.conf.acParam);
-      Array.prototype.push.apply(argv, ['-f', 'tee', '-map', '0:a?', '-map', '0:v?', mapStr]);
-    } else {
-      Array.prototype.push.apply(argv, ['-f', 'tee', '-map', '0:v?', '-f', 'segment', '-reset_timestamps', '1', '-segment_time', this.conf.segment, mapStr]);
     }
+
+    Array.prototype.push.apply(argv, ['-f', 'segment', '-reset_timestamps', '1', '-segment_time', segmentTime, mapStr]);
     
     argv = argv.filter((n) => { return n }); //去空
     this.ffmpeg_exec = spawn(this.conf.ffmpeg, argv);
