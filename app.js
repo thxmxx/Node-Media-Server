@@ -27,6 +27,15 @@ const config = {
     publish: false,
     secret: 'nodemedia2017privatekey'
   },
+  trans: {
+    ffmpeg: '/usr/local/bin/ffmpeg',
+    tasks: [
+      {
+        app: 'live',
+        mp4: true
+      }
+    ]
+  }
 };
 
 
